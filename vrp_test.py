@@ -2,16 +2,17 @@ from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 from main import compute_time_matrix
 
-def solve_simple_vrp():
+def solve_vrp_with_capacity():
     node_ids = [81537, 949220, 1155520, 990865, 385191]
     matrix = compute_time_matrix(node_ids)
-
-    # OR-Tools cần số nguyên, nhưng cost của mình là số thực (giây có phần thập phân)
-    # Nên làm tròn về giây nguyên - đủ chính xác cho bài toán logistics
     int_matrix = [[round(cell) for cell in row] for row in matrix]
 
-    num_vehicles = 1
-    depot_index = 0  # điểm 81537 làm kho xuất phát
+    # Demand giả lập cho từng điểm (kg) - depot (index 0) luôn = 0
+    demands = [0, 8, 12, 5, 9]
+
+    num_vehicles = 2
+    vehicle_capacities = [20, 20]  # mỗi xe chở tối đa 20kg
+    depot_index = 0
 
     manager = pywrapcp.RoutingIndexManager(len(int_matrix), num_vehicles, depot_index)
     routing = pywrapcp.RoutingModel(manager)
@@ -24,6 +25,21 @@ def solve_simple_vrp():
     transit_callback_index = routing.RegisterTransitCallback(distance_callback)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
 
+    # --- Phần mới: khai báo demand callback + ràng buộc capacity ---
+    def demand_callback(from_index):
+        from_node = manager.IndexToNode(from_index)
+        return demands[from_node]
+
+    demand_callback_index = routing.RegisterUnaryTransitCallback(demand_callback)
+    routing.AddDimensionWithVehicleCapacity(
+        demand_callback_index,
+        0,                    # slack (không cho phép "dư thừa", để 0)
+        vehicle_capacities,
+        True,                 # start cumul to zero - mỗi xe bắt đầu với tải = 0
+        "Capacity"
+    )
+    # --- Hết phần mới ---
+
     search_parameters = pywrapcp.DefaultRoutingSearchParameters()
     search_parameters.first_solution_strategy = (
         routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
@@ -33,20 +49,19 @@ def solve_simple_vrp():
 
     if solution:
         print("✅ Tìm được lộ trình!")
-        index = routing.Start(0)
-        route = []
-        total_cost = 0
-        while not routing.IsEnd(index):
-            node = manager.IndexToNode(index)
-            route.append(node_ids[node])
-            previous_index = index
-            index = solution.Value(routing.NextVar(index))
-            total_cost += routing.GetArcCostForVehicle(previous_index, index, 0)
-        route.append(node_ids[manager.IndexToNode(index)])
-        print("Lộ trình (theo id điểm):", route)
-        print(f"Tổng thời gian: {total_cost} giây (~{total_cost/60:.1f} phút)")
+        for vehicle_id in range(num_vehicles):
+            index = routing.Start(vehicle_id)
+            route = []
+            route_load = 0
+            while not routing.IsEnd(index):
+                node = manager.IndexToNode(index)
+                route_load += demands[node]
+                route.append(node_ids[node])
+                index = solution.Value(routing.NextVar(index))
+            route.append(node_ids[manager.IndexToNode(index)])
+            print(f"Xe {vehicle_id}: {route} | Tổng tải: {route_load}kg")
     else:
         print("❌ Không tìm được lời giải")
 
 if __name__ == "__main__":
-    solve_simple_vrp()
+    solve_vrp_with_capacity()
