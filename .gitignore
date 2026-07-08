@@ -1,0 +1,17 @@
+# File bản đồ OSM gốc - quá nặng, không cần track
+*.osm
+*.osm.pbf
+*.geojson
+
+# Môi trường Python (sẽ tạo ở Mốc 2 khi setup FastAPI)
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Node modules (sẽ có ở Mốc 3 khi làm React)
+node_modules/
+
+# File hệ điều hành/editor
+.DS_Store
+.vscode/
