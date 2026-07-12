@@ -1,8 +1,5 @@
 from db import get_connection   # thay vì "from main import get_connection"
-from geo_constants import (
-    HANOI_CENTER, HAIPHONG_CENTER, HALONG_CENTER,
-    RADIUS_HANOI_M, RADIUS_DELIVERY_M, NEAREST_NODE_RADIUS_M,
-)
+from geo_constants import HUBS, NEAREST_NODE_RADIUS_M
 
 
 def find_nearest_node(lng: float, lat: float, radius_m: int = NEAREST_NODE_RADIUS_M) -> int | None:
@@ -32,45 +29,29 @@ def find_nearest_node(lng: float, lat: float, radius_m: int = NEAREST_NODE_RADIU
 
 def classify_hub_zone(lng: float, lat: float) -> str | None:
     """
-    Xác định 1 điểm tọa độ thuộc vùng phủ của Hub nào.
-    Trả về 'hub_a_hanoi' | 'hub_b_halong' | None (nằm ngoài mọi vùng phủ).
+    Xác định 1 điểm tọa độ thuộc vùng phủ của Hub nào trong số các Hub cấu hình ở HUBS.
+    Trả về key của Hub (vd 'hub_a_hanoi') hoặc None nếu ngoài mọi vùng phủ.
     """
     conn = get_connection()
     cur = conn.cursor()
 
-    # --- Check vùng Hà Nội (Hub A) ---
-    cur.execute("""
-        SELECT ST_DWithin(
-            ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-            ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-            %s
-        );
-    """, (lng, lat, *HANOI_CENTER, RADIUS_HANOI_M))
-    if cur.fetchone()[0]:
-        cur.close()
-        conn.close()
-        return "hub_a_hanoi"
-
-    # --- Check vùng Hải Phòng HOẶC Hạ Long (Hub B) ---
-    cur.execute("""
-        SELECT
-            ST_DWithin(
-                ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-                ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
-                %s
-            )
-            OR
-            ST_DWithin(
+    for hub_key, hub_info in HUBS.items():
+        center_lng, center_lat = hub_info["center"]
+        cur.execute("""
+            SELECT ST_DWithin(
                 ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
                 ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
                 %s
             );
-    """, (lng, lat, *HAIPHONG_CENTER, RADIUS_DELIVERY_M, lng, lat, *HALONG_CENTER, RADIUS_DELIVERY_M))
-    is_hub_b = cur.fetchone()[0]
+        """, (lng, lat, center_lng, center_lat, hub_info["radius_m"]))
+        if cur.fetchone()[0]:
+            cur.close()
+            conn.close()
+            return hub_key
 
     cur.close()
     conn.close()
-    return "hub_b_halong" if is_hub_b else None
+    return None
 
 
 def resolve_order_point(lng: float, lat: float) -> dict:
