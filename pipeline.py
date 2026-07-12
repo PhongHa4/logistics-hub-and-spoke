@@ -1,5 +1,5 @@
 from vrp_solver import solve_vrp
-from main import compute_time_matrix
+from time_matrix import compute_time_matrix
 from db import get_connection
 from geo_constants import HUBS
 

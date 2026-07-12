@@ -1,6 +1,6 @@
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
-from main import compute_time_matrix
+from time_matrix import compute_time_matrix
 
 
 def solve_vrp(
