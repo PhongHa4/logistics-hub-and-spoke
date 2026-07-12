@@ -1,21 +1,14 @@
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from db import get_connection
 import psycopg2
+from routers.orders import router as orders_router
 
 load_dotenv()
 
 app = FastAPI(title="Logistics Hub-and-Spoke API")
-
-def get_connection():
-    """Hàm dùng chung để mở kết nối DB, tránh lặp code ở nhiều nơi"""
-    return psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD")
-    )
+app.include_router(orders_router)
 
 @app.get("/")
 def health_check():

@@ -1,5 +1,5 @@
 import random
-from main import get_connection
+from db import get_connection   # thay vì "from main import get_connection"
 
 # Tâm khu vực (dùng lại tọa độ đã thống nhất ở Mốc 2)
 HANOI_CENTER = (105.8542, 21.0285)

@@ -1,5 +1,6 @@
 from vrp_solver import solve_vrp
-from main import compute_time_matrix, get_connection
+from db import get_connection   # thay vì "from main import compute_time_matrix, get_connection"
+from main import compute_time_matrix   # cái này vẫn giữ, vì compute_time_matrix vẫn ở main.py
 
 HUB_A_HANOI = 1019649
 HUB_B_HALONG = 501759

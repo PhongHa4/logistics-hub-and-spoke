@@ -1,4 +1,4 @@
-from main import get_connection
+from db import get_connection   # thay vì "from main import get_connection"
 from geo_constants import (
     HANOI_CENTER, HAIPHONG_CENTER, HALONG_CENTER,
     RADIUS_HANOI_M, RADIUS_DELIVERY_M, NEAREST_NODE_RADIUS_M,
@@ -38,12 +38,10 @@ def classify_hub_zone(lng: float, lat: float) -> str | None:
     conn = get_connection()
     cur = conn.cursor()
 
-    point = "ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography"
-
-    # Check vùng Hà Nội (Hub A)
-    cur.execute(f"""
+    # --- Check vùng Hà Nội (Hub A) ---
+    cur.execute("""
         SELECT ST_DWithin(
-            {point},
+            ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
             ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
             %s
         );
@@ -53,13 +51,21 @@ def classify_hub_zone(lng: float, lat: float) -> str | None:
         conn.close()
         return "hub_a_hanoi"
 
-    # Check vùng Hải Phòng hoặc Hạ Long (Hub B - gộp chung như logic mock data)
-    cur.execute(f"""
+    # --- Check vùng Hải Phòng HOẶC Hạ Long (Hub B) ---
+    cur.execute("""
         SELECT
-            ST_DWithin({point}, ST_SetSRID(ST_MakePoint(%s,%s),4326)::geography, %s)
+            ST_DWithin(
+                ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
+                %s
+            )
             OR
-            ST_DWithin({point}, ST_SetSRID(ST_MakePoint(%s,%s),4326)::geography, %s);
-    """, (lng, lat, *HAIPHONG_CENTER, RADIUS_DELIVERY_M, *HALONG_CENTER, RADIUS_DELIVERY_M))
+            ST_DWithin(
+                ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
+                ST_SetSRID(ST_MakePoint(%s, %s), 4326)::geography,
+                %s
+            );
+    """, (lng, lat, *HAIPHONG_CENTER, RADIUS_DELIVERY_M, lng, lat, *HALONG_CENTER, RADIUS_DELIVERY_M))
     is_hub_b = cur.fetchone()[0]
 
     cur.close()
