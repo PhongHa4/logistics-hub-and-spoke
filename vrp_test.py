@@ -3,15 +3,15 @@ from ortools.constraint_solver import pywrapcp
 from main import compute_time_matrix
 
 def solve_vrp_with_capacity():
-    node_ids = [81537, 949220, 1155520, 990865, 385191]
+    node_ids = [81537, 1019649, 1020378, 501759, 552534]
     matrix = compute_time_matrix(node_ids)
     int_matrix = [[round(cell) for cell in row] for row in matrix]
 
     # Demand giả lập cho từng điểm (kg) - depot (index 0) luôn = 0
-    demands = [0, 8, 12, 5, 9]
+    demands = [0, 5, 5, 5, 5]
 
     num_vehicles = 2
-    vehicle_capacities = [20, 20]  # mỗi xe chở tối đa 20kg
+    vehicle_capacities = [50, 50]  # mỗi xe chở tối đa 50kg
     depot_index = 0
 
     manager = pywrapcp.RoutingIndexManager(len(int_matrix), num_vehicles, depot_index)
