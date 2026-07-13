@@ -6,12 +6,21 @@ import psycopg2
 from routers.orders import router as orders_router
 from routers.routes import router as routes_router
 from time_matrix import compute_time_matrix
+from fastapi.middleware.cors import CORSMiddleware
+from routers.ws import router as ws_router
 
 load_dotenv()
 
 app = FastAPI(title="Logistics Hub-and-Spoke API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(orders_router)
 app.include_router(routes_router)
+app.include_router(ws_router)
 
 @app.get("/")
 def health_check():
